@@ -1,0 +1,109 @@
+---
+// src/components/Footer.astro
+interface Contact {
+  id: string;
+  type: string;
+  name: string;
+  url: string;
+  is_primary: boolean;
+}
+
+interface Props {
+  storeName: string;
+  contacts: Contact[];
+  accent_color: string;
+}
+
+const { storeName, contacts, accent_color } = Astro.props;
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="store-footer">
+  <div class="footer-container">
+    <div class="footer-info">
+      <h3>{storeName}</h3>
+      <p>Apoyando al comercio local y PYMEs en el Perú 🇵🇪</p>
+    </div>
+
+    <div class="footer-contacts">
+      <h4>Contáctanos</h4>
+      <ul>
+        {
+          contacts.map((contact) => (
+            <li>
+              <a href={contact.url} target="_blank" rel="noopener noreferrer">
+                {contact.is_primary && (
+                  <span
+                    class="badge"
+                    style={`background-color: ${accent_color}`}
+                  >
+                    Principal
+                  </span>
+                )}
+                <strong>{contact.type}:</strong> {contact.name}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; {currentYear} {storeName} - Desarrollado con WebFacil MVP.</p>
+  </div>
+</footer>
+
+<style>
+  .store-footer {
+    background-color: #1f2937;
+    color: #f3f4f6;
+    padding: 3rem 1rem 1.5rem 1rem;
+    margin-top: 4rem;
+  }
+  .footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 2rem;
+    border-bottom: 1px solid #374151;
+    padding-bottom: 2rem;
+  }
+  .footer-info h3,
+  .footer-contacts h4 {
+    margin-top: 0;
+    color: #ffffff;
+  }
+  .footer-contacts ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .footer-contacts li {
+    margin-bottom: 0.5rem;
+  }
+  .footer-contacts a {
+    color: #9ca3af;
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .footer-contacts a:hover {
+    color: #ffffff;
+  }
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    color: white;
+  }
+  .footer-bottom {
+    text-align: center;
+    padding-top: 1.5rem;
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+</style>

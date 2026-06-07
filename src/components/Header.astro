@@ -1,0 +1,249 @@
+---
+// src/components/Header.astro
+
+interface Props {
+  store: {
+    name: string;
+    description: string;
+    logo_url: string;
+    primary_color: string;
+    text_color: string;
+  };
+}
+
+const { store } = Astro.props;
+---
+
+<header class="barra-navegacion-pyme">
+  <div class="contenedor-bloque-header">
+    <div class="marca-horizontal-fija">
+      {
+        store.logo_url && (
+          <div class="mascara-logo-circular">
+            <img
+              src={store.logo_url}
+              alt={`Logo de ${store.name}`}
+              class="imagen-logo-render"
+            />
+          </div>
+        )
+      }
+
+      <div class="textos-alineados-costado">
+        <h1 class="titulo-tienda-pyme">{store.name}</h1>
+        <p class="descripcion-tienda-pyme">{store.description}</p>
+      </div>
+    </div>
+
+    <div class="Botones">
+      <a href="/">Inicio</a>
+      <a href="/catalogo">catálogo</a>
+      <a href="/contacto">
+        <button>Contactar</button>
+      </a>
+    </div>
+  </div>
+</header>
+
+<style
+  is:global
+  define:vars={{ colorPymeHover: store.primary_color || "#2563eb" }}
+>
+  /* Estilos encapsulados con fuerza extrema para evitar herencias */
+
+  .barra-navegacion-pyme {
+    background-color: #ffffff !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 9999 !important;
+    width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+  }
+
+  .contenedor-bloque-header {
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+    padding: 0 20px !important;
+    height: 80px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+  }
+
+  /* FUERZA LA ALINEACIÓN HORIZONTAL DEL LOGO Y TEXTOS */
+  .marca-horizontal-fija {
+    display: flex !important;
+    flex-direction: row !important; /* Logo a la izquierda, texto a la derecha */
+    align-items: center !important; /* Centrado vertical perfecto */
+    gap: 16px !important;
+    float: left !important;
+  }
+
+  /* RECORTA EL LOGO EN UN CÍRCULO PERFECTO OBLIGATORIO */
+  .mascara-logo-circular {
+    width: 55px !important;
+    height: 55px !important;
+    border-radius: 50% !important; /* Hace el círculo perfecto */
+    overflow: hidden !important; /* Corta las esquinas de cualquier imagen rectangular */
+    border: 1px solid #e5e7eb !important;
+    background-color: #f9fafb !important;
+    display: block !important;
+    flex-shrink: 0 !important; /* Evita que el círculo se deforme o aplaste */
+  }
+
+  .imagen-logo-render {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important; /* Ajusta la foto sin distorsionarla */
+  }
+
+  .textos-alineados-costado {
+    display: flex !important;
+    flex-direction: column !important; /* Nombre arriba, descripción abajo */
+    justify-content: center !important;
+    text-align: left !important;
+  }
+
+  .titulo-tienda-pyme {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  .descripcion-tienda-pyme {
+    font-size: 12px !important;
+    color: #6b7280 !important;
+    margin: 2px 0 0 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 250px !important;
+  }
+  /*botones de navegacion*/
+
+  .Botones {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  a {
+    text-decoration: none;
+    color: black;
+    font-weight: bold;
+  }
+
+  button {
+    background: black;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #333;
+  }
+</style>
+
+<!--
+---
+// src/components/Header.astro
+interface Props {
+  store: {
+    name: string;
+    description: string;
+    logo_url: string;
+    primary_color: string;
+    text_color: string;
+  };
+}
+
+const { store } = Astro.props;
+---
+
+<header class="store-header">
+  <div class="header-container">
+    <div class="brand">
+      {
+        store.logo_url && (
+          <img
+            src={store.logo_url}
+            alt={`Logo de ${store.name}`}
+            class="logo"
+          />
+        )
+      }
+      <div class="brand-text">
+        <h1>{store.name}</h1>
+        <p>{store.description}</p>
+      </div>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" placeholder="Buscar productos..." />
+    </div>
+  </div>
+</header>
+
+<style
+  define:vars={{
+    primaryColor: store.primary_color,
+    textColor: store.text_color,
+  }}
+>
+  .store-header {
+    background-color: var(--primaryColor);
+    color: var(--textColor);
+    padding: 1.5rem 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: white;
+  }
+  .brand-text h1 {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+  .brand-text p {
+    font-size: 0.85rem;
+    margin: 0;
+    opacity: 0.8;
+  }
+  .search-bar input {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    width: 250px;
+  }
+</style>
+
+
+-->

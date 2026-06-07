@@ -1,0 +1,98 @@
+---
+// src/pages/index.astro
+import Header from '../components/Header.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import { supabase } from '../lib/supabase'; // Tu archivo de conexión
+
+// 1. Definir o leer el ID de la tienda activa
+const STORE_ID = import.meta.env.PUBLIC_STORE_ID || "tu-uuid-de-tienda-aqui";
+
+// 2. Hacer las consultas en paralelo a tus vistas públicas
+const { data: store } = await supabase
+  .from('vw_store_public')
+  .select('*')
+  .eq('id', STORE_ID)
+  .single();
+
+const { data: categories } = await supabase
+  .from('vw_store_public_categories')
+  .select('*')
+  .eq('store_id', STORE_ID)
+  .order('display_order', { ascending: true });
+
+const { data: contacts } = await supabase
+  .from('vw_store_public_contacts')
+  .select('*')
+  .eq('store_id', STORE_ID)
+  .order('display_order', { ascending: true });
+
+const { data: products } = await supabase
+  .from('vw_store_public_products')
+  .select('*')
+  .eq('store_id', STORE_ID)
+  .order('display_order', { ascending: true });
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>{store?.name || "Cargando Tienda..."}</title>
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body style={`background-color: ${store?.background_color || '#fafafa'}`}>
+    
+    {store && (
+      <Header store={store} />
+      
+      <Navbar categories={categories || []} secondary_color={store.secondary_color} />
+      
+      <main class="catalog-container">
+        <h2>Nuestros Productos</h2>
+        <div class="products-grid">
+          {products?.map((product) => (
+            <div class="product-card">
+              <img src={product.image_url} alt={product.name} />
+              <h3>{product.name}</h3>
+              <p>{store.currency_symbol} {product.price}</p>
+              <a href={`/producto/${product.slug}`}>Ver Detalle</a>
+            </div>
+          ))}
+        </div>
+      </main>
+
+      <Footer 
+        storeName={store.name} 
+        contacts={contacts || []} 
+        accent_color={store.accent_color} 
+      />
+    )}
+
+  </body>
+</html>
+
+<style>
+  /* Estilos rápidos para centrar el catálogo */
+  .catalog-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+  .product-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  .product-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+</style>
