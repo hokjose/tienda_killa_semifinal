@@ -1,4 +1,31 @@
 ---
+import MainLayout from "../layouts/MainLayout.astro";
+import Navbar from "../components/Navbar.astro";
+import { supabase } from "../lib/supabase";
+
+const STORE_ID = import.meta.env.PUBLIC_STORE_ID;
+
+const { data: store } = await supabase
+  .from("vw_store_public")
+  .select("*")
+  .eq("id", STORE_ID)
+  .single();
+
+const { data: contacts } = await supabase
+  .from("vw_store_public_contacts")
+  .select("*")
+  .eq("store_id", STORE_ID);
+
+const { data: categories } = await supabase
+  .from("vw_store_public_categories")
+  .select("*")
+  .eq("store_id", STORE_ID);
+---
+
+<!--
+
+
+---
 // src/pages/index.astro
 import Header from '../components/Header.astro';
 import Navbar from '../components/Navbar.astro';
@@ -358,3 +385,8 @@ const { data: products } = await supabase.from('vw_store_public_products').selec
 }
 
 </style>
+
+ -->
+<MainLayout store={store} contacts={contacts}>
+  <Navbar store={store} categories={categories || []} />
+</MainLayout>

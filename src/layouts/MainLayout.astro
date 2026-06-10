@@ -1,0 +1,72 @@
+---
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+
+const { store, contacts = [] } = Astro.props;
+---
+
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>{store?.name || "Artesanías Killa"}</title>
+
+    <style is:global>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-height: 100vh;
+
+        background: #f8fafc;
+
+        color: #0f172a;
+
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          sans-serif;
+
+        display: flex;
+        flex-direction: column;
+      }
+
+      main {
+        flex: 1;
+        width: 100%;
+      }
+
+      img {
+        max-width: 100%;
+        display: block;
+      }
+
+      a {
+        text-decoration: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <Header store={store} />
+
+    <main>
+      <slot />
+    </main>
+
+    <Footer
+      storeName={store?.name}
+      contacts={contacts}
+      accent_color="#0b0f19"
+    />
+  </body>
+</html>
