@@ -36,10 +36,10 @@ const { store } = Astro.props;
     </div>
 
     <div class="Botones">
-      <a href="/">Inicio</a>
-      <a href="/catalogo">catálogo</a>
+      <a href="/" class="link-futurista">Inicio</a>
+      <a href="/catalogo" class="link-futurista">Catálogo</a>
       <a href="/contacto">
-        <button>Contactar</button>
+        <button class="btn-ciber">Contactar</button>
       </a>
     </div>
   </div>
@@ -47,13 +47,18 @@ const { store } = Astro.props;
 
 <style
   is:global
-  define:vars={{ colorPymeHover: store.primary_color || "#2563eb" }}
+  define:vars={{
+    colorAcentoTech: store.primary_color || "#38bdf8",
+    colorTextoTech: store.text_color || "#ffffff",
+  }}
 >
-  /* Estilos encapsulados con fuerza extrema para evitar herencias */
-
+  /* ==========================================
+     HEADER FUTURISTA - EFECTO CRISTAL Y NEÓN
+     ========================================== */
   .barra-navegacion-pyme {
-    background-color: #ffffff !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    background-color: #ffffff !important; /* Forzado a color blanco puro */
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important; /* Borde gris suavecito abajo */
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important; /* Sombra suave */
     position: sticky !important;
     top: 0 !important;
     z-index: 9999 !important;
@@ -62,11 +67,28 @@ const { store } = Astro.props;
     box-sizing: border-box !important;
   }
 
+  /* Línea de energía láser debajo del header */
+  .barra-navegacion-pyme::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--colorAcentoTech),
+      transparent
+    );
+    opacity: 0.8;
+  }
+
   .contenedor-bloque-header {
     max-width: 1200px !important;
     margin: 0 auto !important;
     padding: 0 20px !important;
-    height: 80px !important;
+    height: 85px !important;
     display: flex !important;
     flex-direction: row !important;
     justify-content: space-between !important;
@@ -74,176 +96,149 @@ const { store } = Astro.props;
     box-sizing: border-box !important;
   }
 
-  /* FUERZA LA ALINEACIÓN HORIZONTAL DEL LOGO Y TEXTOS */
+  /* LOGO Y MARCA */
   .marca-horizontal-fija {
     display: flex !important;
-    flex-direction: row !important; /* Logo a la izquierda, texto a la derecha */
-    align-items: center !important; /* Centrado vertical perfecto */
-    gap: 16px !important;
-    float: left !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 18px !important;
   }
 
-  /* RECORTA EL LOGO EN UN CÍRCULO PERFECTO OBLIGATORIO */
+  /* El logo ahora tiene un aura de luz dinámica */
   .mascara-logo-circular {
     width: 55px !important;
     height: 55px !important;
-    border-radius: 50% !important; /* Hace el círculo perfecto */
-    overflow: hidden !important; /* Corta las esquinas de cualquier imagen rectangular */
-    border: 1px solid #e5e7eb !important;
-    background-color: #f9fafb !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    border: 2px solid var(--colorAcentoTech) !important;
+    box-shadow: 0 0 15px var(--colorAcentoTech) !important; /* Aura de neón */
+    background-color: #0b0f19 !important;
     display: block !important;
-    flex-shrink: 0 !important; /* Evita que el círculo se deforme o aplaste */
+    flex-shrink: 0 !important;
+    transition: transform 0.3s ease !important;
+  }
+
+  .mascara-logo-circular:hover {
+    transform: scale(1.05) rotate(5deg) !important;
   }
 
   .imagen-logo-render {
     width: 100% !important;
     height: 100% !important;
-    object-fit: cover !important; /* Ajusta la foto sin distorsionarla */
+    object-fit: cover !important;
   }
 
+  /* TIPOGRAFÍAS FUTURISTAS */
   .textos-alineados-costado {
     display: flex !important;
-    flex-direction: column !important; /* Nombre arriba, descripción abajo */
+    flex-direction: column !important;
     justify-content: center !important;
     text-align: left !important;
   }
 
   .titulo-tienda-pyme {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    color: #111827 !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    color: var(--colorTextoTech) !important;
     margin: 0 !important;
     padding: 0 !important;
     line-height: 1.2 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important; /* Espaciado tecnológico */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2) !important;
   }
 
   .descripcion-tienda-pyme {
     font-size: 12px !important;
-    color: #6b7280 !important;
-    margin: 2px 0 0 0 !important;
+    color: var(--colorTextoTech) !important;
+    opacity: 0.6 !important;
+    margin: 4px 0 0 0 !important;
     padding: 0 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     max-width: 250px !important;
+    font-family: monospace, sans-serif !important; /* Letra estilo terminal */
+    letter-spacing: 0.5px !important;
   }
-  /*botones de navegacion*/
 
+  /* BOTONES DE NAVEGACIÓN */
+  /* BOTONES DE NAVEGACIÓN */
+  .link-futurista {
+    text-decoration: none;
+    color: var(--colorTextoTech);
+
+    font-weight: 800;
+    font-size: 14px;
+
+    text-transform: uppercase;
+    letter-spacing: 1px;
+
+    position: relative;
+
+    transition: color 0.3s ease;
+  }
+
+  /* Línea azul animada */
+  .link-futurista::after {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    bottom: -6px;
+
+    width: 0;
+    height: 2px;
+
+    background: #3b82f6;
+
+    border-radius: 999px;
+
+    transition: width 0.3s ease;
+  }
+
+  .link-futurista:hover {
+    color: #3b82f6;
+  }
+
+  .link-futurista:hover::after {
+    width: 100%;
+  }
+
+  /* Botón interactivo tipo Cyberpunk / Holograma */
+  .btn-ciber {
+    background: transparent;
+    color: var(--colorTextoTech);
+    border: 1px solid var(--colorTextoTech);
+    padding: 0.6rem 1.5rem;
+    border-radius: 16px; /* Bordes ligeramente cuadrados tech */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.1);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Efecto de llenado radiactivo al hacer hover */
+  .btn-ciber:hover {
+    background: var(--colorTextoTech);
+    color: white; /* Texto oscuro sobre el neón brillante */
+    box-shadow: 0 0 20px var(--colorTextoTech);
+    transform: translateY(-2px);
+    border-color: transparent;
+  }
+
+  .btn-ciber:active {
+    transform: translateY(0) scale(0.95);
+  }
   .Botones {
     display: flex;
-    gap: 1rem;
+    gap: 3rem;
     align-items: center;
-  }
-
-  a {
-    text-decoration: none;
-    color: black;
-    font-weight: bold;
-  }
-
-  button {
-    background: black;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-
-  button:hover {
-    background: #333;
   }
 </style>
-
-<!--
----
-// src/components/Header.astro
-interface Props {
-  store: {
-    name: string;
-    description: string;
-    logo_url: string;
-    primary_color: string;
-    text_color: string;
-  };
-}
-
-const { store } = Astro.props;
----
-
-<header class="store-header">
-  <div class="header-container">
-    <div class="brand">
-      {
-        store.logo_url && (
-          <img
-            src={store.logo_url}
-            alt={`Logo de ${store.name}`}
-            class="logo"
-          />
-        )
-      }
-      <div class="brand-text">
-        <h1>{store.name}</h1>
-        <p>{store.description}</p>
-      </div>
-    </div>
-
-    <div class="search-bar">
-      <input type="text" placeholder="Buscar productos..." />
-    </div>
-  </div>
-</header>
-
-<style
-  define:vars={{
-    primaryColor: store.primary_color,
-    textColor: store.text_color,
-  }}
->
-  .store-header {
-    background-color: var(--primaryColor);
-    color: var(--textColor);
-    padding: 1.5rem 1rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  .header-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  .logo {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: white;
-  }
-  .brand-text h1 {
-    font-size: 1.5rem;
-    margin: 0;
-  }
-  .brand-text p {
-    font-size: 0.85rem;
-    margin: 0;
-    opacity: 0.8;
-  }
-  .search-bar input {
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    border: 1px solid #ccc;
-    width: 250px;
-  }
-</style>
-
-
--->

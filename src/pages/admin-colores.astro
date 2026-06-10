@@ -1,0 +1,320 @@
+---
+// src/pages/admin-colores.astro
+// Panel independiente para que el dueño de la PYME cambie los colores del sitio
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel de Control - Personalizar Tienda</title>
+  </head>
+  <body class="body-admin-panel">
+    <div class="contenedor-formulario-admin">
+      <a href="/" class="btn-volver-tienda">⬅ Volver a la Tienda</a>
+
+      <div class="encabezado-admin">
+        <h2>Personalización de la Tienda</h2>
+        <p>
+          Elige los colores de tu catálogo público. Los cambios se guardarán
+          directo en Supabase.
+        </p>
+      </div>
+
+      <form id="form-colores-pyme" class="form-estilos-pyme">
+        <div class="item-control-color">
+          <label for="header_bg">Color de Fondo del Header:</label>
+          <div class="caja-input-picker">
+            <input
+              type="color"
+              id="header_bg"
+              name="header_bg"
+              value="#ffffff"
+            />
+            <span class="codigo-hexa-texto">#ffffff</span>
+          </div>
+        </div>
+
+        <div class="item-control-color">
+          <label for="navbar_bg">Color de Fondo del Navbar (Banner):</label>
+          <div class="caja-input-picker">
+            <input
+              type="color"
+              id="navbar_bg"
+              name="navbar_bg"
+              value="#0f172a"
+            />
+            <span class="codigo-hexa-texto">#0f172a</span>
+          </div>
+        </div>
+
+        <div class="item-control-color">
+          <label for="footer_bg">Color de Fondo del Footer:</label>
+          <div class="caja-input-picker">
+            <input
+              type="color"
+              id="footer_bg"
+              name="footer_bg"
+              value="#111827"
+            />
+            <span class="codigo-hexa-texto">#111827</span>
+          </div>
+        </div>
+
+        <div class="item-control-color">
+          <label for="text_color">Color General de Textos:</label>
+          <div class="caja-input-picker">
+            <input
+              type="color"
+              id="text_color"
+              name="text_color"
+              value="#ffffff"
+            />
+            <span class="codigo-hexa-texto">#ffffff</span>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          id="btn-guardar-colores"
+          class="btn-guardar-admin"
+        >
+          Guardar Cambios en la Base de Datos
+        </button>
+
+        <div id="mensaje-estado-db" class="notificacion-estado"></div>
+      </form>
+    </div>
+
+    <script>
+      import { createClient } from "@supabase/supabase-js";
+
+      const supabaseUrl = import.meta.env.PUBLIC_ADMIN_SUPABASE_URL;
+      const supabaseKey = import.meta.env.PUBLIC_ADMIN_SUPABASE_ANON_KEY;
+      const adminSupabase = createClient(supabaseUrl, supabaseKey);
+
+      const formulario = document.getElementById("form-colores-pyme");
+      const mensaje = document.getElementById("mensaje-estado-db");
+
+      // ID fijo que usaremos para nuestra única fila de configuración
+      const CONFIG_ID = "00000000-0000-0000-0000-000000000001";
+
+      async function cargarColoresActuales() {
+        const { data, error } = await adminSupabase
+          .from("configuracion_tienda")
+          .select("*")
+          .eq("id", CONFIG_ID)
+          .maybeSingle(); // Evita errores si la tabla está vacía
+
+        if (data) {
+          document.getElementById("header_bg").value = data.header_bg.trim();
+          document.getElementById("navbar_bg").value = data.navbar_bg.trim();
+          document.getElementById("footer_bg").value = data.footer_bg.trim();
+          document.getElementById("text_color").value = data.text_color.trim();
+          actualizarTextosHexa();
+        }
+      }
+
+      function actualizarTextosHexa() {
+        const inputs = formulario.querySelectorAll('input[type="color"]');
+        inputs.forEach((input) => {
+          const txt = input.nextElementSibling;
+          txt.textContent = input.value;
+        });
+      }
+
+      formulario.addEventListener("input", actualizarTextosHexa);
+
+      formulario.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const btn = document.getElementById("btn-guardar-colores");
+        btn.textContent = "Guardando en Supabase...";
+        btn.disabled = true;
+
+        const header_bg = document.getElementById("header_bg").value;
+        const navbar_bg = document.getElementById("navbar_bg").value;
+        const footer_bg = document.getElementById("footer_bg").value;
+        const text_color = document.getElementById("text_color").value;
+
+        // Usamos UPSERT: Si no existe la fila, la CREA; si existe, la ACTUALIZA. Así nunca falla.
+        const { error } = await adminSupabase
+          .from("configuracion_tienda")
+          .upsert({
+            id: CONFIG_ID,
+            header_bg,
+            navbar_bg,
+            footer_bg,
+            text_color,
+            updated_at: new Date(),
+          });
+
+        if (!error) {
+          mensaje.textContent =
+            "¡Éxito! Colores guardados en Supabase. Haz clic arriba para volver.";
+          mensaje.className = "notificacion-estado exito";
+        } else {
+          console.error(error);
+          mensaje.textContent =
+            "Error: Verifica tus llaves .env o la tabla en Supabase.";
+          mensaje.className = "notificacion-estado error";
+        }
+
+        btn.textContent = "Guardar Cambios en la Base de Datos";
+        btn.disabled = false;
+      });
+
+      cargarColoresActuales();
+    </script>
+  </body>
+</html>
+
+<style>
+  /* ESTILOS PANEL MASCULINO TECH */
+  .body-admin-panel {
+    background-color: #0b0f19;
+    color: #f1f5f9;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .contenedor-formulario-admin {
+    background: #111827;
+    max-width: 500px;
+    width: 100%;
+    padding: 35px;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border: 1px solid #1f2937;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* BOTÓN DE RETORNO ESTILIZADO */
+  .btn-volver-tienda {
+    align-self: flex-start;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    transition: color 0.2s;
+  }
+  .btn-volver-tienda:hover {
+    color: #38bdf8;
+  }
+
+  .encabezado-admin h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 0 10px 0;
+  }
+
+  .encabezado-admin p {
+    font-size: 14px;
+    color: #9ca3af;
+    line-height: 1.5;
+    margin: 0 0 30px 0;
+  }
+
+  .form-estilos-pyme {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .item-control-color {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .item-control-color label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e5e7eb;
+  }
+
+  .caja-input-picker {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #1f2937;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #374151;
+  }
+
+  input[type="color"] {
+    -webkit-appearance: none;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: none;
+    padding: 0;
+  }
+
+  input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  input[type="color"]::-webkit-color-swatch {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+  }
+
+  .codigo-hexa-texto {
+    font-size: 14px;
+    font-family: monospace;
+    color: #38bdf8;
+    font-weight: bold;
+  }
+
+  .btn-guardar-admin {
+    margin-top: 15px;
+    padding: 14px;
+    background: #38bdf8;
+    color: #0b0f19;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-guardar-admin:hover {
+    background: #0ea5e9;
+    transform: translateY(-2px);
+  }
+
+  .btn-guardar-admin:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .notificacion-estado {
+    font-size: 14px;
+    text-align: center;
+    margin-top: 10px;
+    font-weight: 600;
+  }
+
+  .notificacion-estado.exito {
+    color: #4ade80;
+  }
+  .notificacion-estado.error {
+    color: #f87171;
+  }
+</style>

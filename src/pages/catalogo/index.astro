@@ -1,0 +1,318 @@
+---
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import { supabase } from "../../lib/supabase";
+
+const STORE_ID = import.meta.env.PUBLIC_STORE_ID;
+
+const { data: store } = await supabase
+  .from("vw_store_public")
+  .select("*")
+  .eq("id", STORE_ID)
+  .single();
+
+const { data: contacts } = await supabase
+  .from("vw_store_public_contacts")
+  .select("*")
+  .eq("store_id", STORE_ID);
+
+const { data: products } = await supabase
+  .from("vw_store_public_products")
+  .select("*")
+  .eq("store_id", STORE_ID)
+  .order("display_order", { ascending: true });
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Catálogo</title>
+  </head>
+
+  <body>
+    <Header store={store} />
+
+    <main class="catalog-container">
+      <div class="header-seccion">
+        <a href="/" class="btn-volver"> ← Volver al Inicio </a>
+
+        <h2>Nuestro Catalogo</h2>
+
+        <p class="sub-seccion">Explora todos nuestros productos</p>
+      </div>
+
+      <div class="products-grid">
+        {
+          products?.map((product) => (
+            <div class="product-card">
+              <div class="badge-categoria">{product.category_name}</div>
+
+              <div class="contenedor-imagen">
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  loading="lazy"
+                />
+              </div>
+
+              <div class="contenido-card">
+                <h3>{product.name}</h3>
+
+                <p class="precio">
+                  {store?.currency_symbol}
+                  {product.price}
+                </p>
+
+                <a href={`/producto/${product.slug}`} class="btn-detalle">
+                  Ver Detalle
+                </a>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </main>
+
+    <Footer
+      storeName={store?.name}
+      contacts={contacts || []}
+      accent_color="#0b0f19"
+    />
+  </body>
+</html>
+<style>
+  <style>
+  /* =========================
+     CONTENEDOR PRINCIPAL
+     ========================= */
+  .catalog-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+    min-height: 70vh;
+  }
+
+  /* =========================
+     CABECERA DEL CATÁLOGO
+     ========================= */
+  .header-seccion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 3rem;
+    gap: 12px;
+  }
+
+  .header-seccion h2 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .sub-seccion {
+    color: #64748b;
+    font-size: 1rem;
+    max-width: 600px;
+    margin: 0;
+  }
+
+  /* =========================
+     BOTÓN VOLVER
+     ========================= */
+  .btn-volver {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px 22px;
+
+    background: #0f172a;
+    color: white;
+
+    text-decoration: none;
+    border-radius: 12px;
+
+    font-weight: 700;
+
+    transition: all 0.3s ease;
+  }
+
+  .btn-volver:hover {
+    background: #38bdf8;
+    color: #0f172a;
+    transform: translateY(-2px);
+  }
+
+  /* =========================
+     GRID RESPONSIVO
+     ========================= */
+  .products-grid {
+    display: grid;
+
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+
+    gap: 24px;
+  }
+
+  /* =========================
+     TARJETA PRODUCTO
+     ========================= */
+  .product-card {
+    background: #ffffff;
+
+    border-radius: 20px;
+
+    overflow: hidden;
+
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+
+    transition: all 0.3s ease;
+
+    display: flex;
+    flex-direction: column;
+
+    position: relative;
+  }
+
+  .product-card:hover {
+    transform: translateY(-8px);
+
+    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.12);
+  }
+
+  /* =========================
+     ETIQUETA CATEGORÍA
+     ========================= */
+  .badge-categoria {
+    position: absolute;
+
+    top: 12px;
+    left: 12px;
+
+    background: #0f172a;
+    color: white;
+
+    padding: 6px 12px;
+
+    border-radius: 999px;
+
+    font-size: 0.75rem;
+    font-weight: 700;
+
+    z-index: 2;
+  }
+
+  /* =========================
+     IMAGEN
+     ========================= */
+  .contenedor-imagen {
+    width: 100%;
+    height: 240px;
+    overflow: hidden;
+  }
+
+  .contenedor-imagen img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    transition: transform 0.4s ease;
+  }
+
+  .product-card:hover img {
+    transform: scale(1.08);
+  }
+
+  /* =========================
+     CONTENIDO
+     ========================= */
+  .contenido-card {
+    display: flex;
+    flex-direction: column;
+
+    flex: 1;
+
+    padding: 18px;
+  }
+
+  .contenido-card h3 {
+    margin: 0 0 10px;
+    color: #0f172a;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .precio {
+    font-size: 1.3rem;
+    font-weight: 800;
+
+    color: #2563eb;
+
+    margin-bottom: 20px;
+  }
+
+  /* =========================
+     BOTÓN DETALLE
+     ========================= */
+  .btn-detalle {
+    margin-top: auto;
+
+    text-decoration: none;
+
+    text-align: center;
+
+    background: #0f172a;
+    color: white;
+
+    padding: 12px;
+
+    border-radius: 12px;
+
+    font-weight: 700;
+
+    transition: all 0.3s ease;
+  }
+
+  .btn-detalle:hover {
+    background: #38bdf8;
+    color: #0f172a;
+  }
+
+  /* =========================
+     TABLETS
+     ========================= */
+  @media (max-width: 768px) {
+    .catalog-container {
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    .contenedor-imagen {
+      height: 220px;
+    }
+  }
+
+  /* =========================
+     CELULARES
+     ========================= */
+  @media (max-width: 480px) {
+    .header-seccion h2 {
+      font-size: 2rem;
+    }
+
+    .products-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .contenedor-imagen {
+      height: 220px;
+    }
+
+    .btn-volver {
+      width: 100%;
+    }
+  }
+</style>

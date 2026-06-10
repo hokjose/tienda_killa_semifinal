@@ -3,35 +3,39 @@
 import Header from '../components/Header.astro';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
-import { supabase } from '../lib/supabase'; // Tu archivo de conexión
+import { supabase } from '../lib/supabase'; // Conexión de tu compañero Uhziel (La que SÍ usaremos)
 
-// 1. Definir o leer el ID de la tienda activa
+// ====================================================================
+// ❌ PANEL DE ADMINISTRACIÓN APAGADO TEMPORALMENTE (COMENTADO)
+// ====================================================================
+/*
+import { createClient } from '@supabase/supabase-js';
+const adminUrl = import.meta.env.PUBLIC_ADMIN_SUPABASE_URL;
+const adminKey = import.meta.env.PUBLIC_ADMIN_SUPABASE_ANON_KEY;
+const adminSupabase = createClient(adminUrl, adminKey);
+const CONFIG_ID = "00000000-0000-0000-0000-000000000001";
+const { data: misColores } = await adminSupabase.from('configuracion_tienda').select('*').eq('id', CONFIG_ID).maybeSingle();
+*/
+
+// ====================================================================
+// 🎨 COLORES LOCALES: Edita aquí para mejorar la estética a tu gusto
+// ====================================================================
+const coloresSeguros = {
+  header_bg: '#ffffff',    // Color del Header (Negro pizarra premium)
+  navbar_bg: '#1e293b',    // Color del Navbar/Banner (Gris tech oscuro)
+  footer_bg: '#0b0f19',    // Color del Footer (Fondo profundo)
+  text_color: '#ffffff'    // Color del texto
+};
+// ====================================================================
+
+// 1. ID de la tienda activa (Para jalar los datos de Uhziel)
 const STORE_ID = import.meta.env.PUBLIC_STORE_ID || "tu-uuid-de-tienda-aqui";
 
-// 2. Hacer las consultas en paralelo a tus vistas públicas
-const { data: store } = await supabase
-  .from('vw_store_public')
-  .select('*')
-  .eq('id', STORE_ID)
-  .single();
-
-const { data: categories } = await supabase
-  .from('vw_store_public_categories')
-  .select('*')
-  .eq('store_id', STORE_ID)
-  .order('display_order', { ascending: true });
-
-const { data: contacts } = await supabase
-  .from('vw_store_public_contacts')
-  .select('*')
-  .eq('store_id', STORE_ID)
-  .order('display_order', { ascending: true });
-
-const { data: products } = await supabase
-  .from('vw_store_public_products')
-  .select('*')
-  .eq('store_id', STORE_ID)
-  .order('display_order', { ascending: true });
+// 2. Consultas reales de productos, categorías y contactos de Supabase
+const { data: store } = await supabase.from('vw_store_public').select('*').eq('id', STORE_ID).single();
+const { data: categories } = await supabase.from('vw_store_public_categories').select('*').eq('store_id', STORE_ID).order('display_order', { ascending: true });
+const { data: contacts } = await supabase.from('vw_store_public_contacts').select('*').eq('store_id', STORE_ID).order('display_order', { ascending: true });
+const { data: products } = await supabase.from('vw_store_public_products').select('*').eq('store_id', STORE_ID).order('display_order', { ascending: true });
 ---
 
 <html lang="es">
@@ -39,60 +43,318 @@ const { data: products } = await supabase
     <meta charset="utf-8" />
     <title>{store?.name || "Cargando Tienda..."}</title>
     <meta name="viewport" content="width=device-width" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    
+    <style is:inline set:html={`
+      :root {
+        --colorHeaderAdmin: ${coloresSeguros.header_bg};
+        --colorNavbarAdmin: ${coloresSeguros.navbar_bg};
+        --colorFooterAdmin: ${coloresSeguros.footer_bg};
+        --colorAcentoTienda: ${coloresSeguros.navbar_bg};
+      }
+      
+      body {
+        background-color: #0b0f19 !important; /* Fondo general oscuro futurista */
+        color: #f1f5f9;
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
+      }
+
+      header, .header, [class*="header"] {
+        background-color: var(--colorHeaderAdmin) !important;
+      }
+
+      footer, .footer, [class*="footer"] {
+        background-color: var(--colorFooterAdmin) !important;
+      }
+    `} />
   </head>
-  <body style={`background-color: ${store?.background_color || '#fafafa'}`}>
+  <body>
     
     {store && (
       <Header store={store} />
       
-      <Navbar categories={categories || []} secondary_color={store.secondary_color} />
-      
-      <main class="catalog-container">
-        <h2>Nuestros Productos</h2>
-        <div class="products-grid">
-          {products?.map((product) => (
-            <div class="product-card">
-              <img src={product.image_url} alt={product.name} />
-              <h3>{product.name}</h3>
-              <p>{store.currency_symbol} {product.price}</p>
-              <a href={`/producto/${product.slug}`}>Ver Detalle</a>
-            </div>
-          ))}
+      <Navbar
+  store={store}
+  categories={categories || []}
+  mostrarCategorias={true}
+/>
+<section class="categorias-home">
+
+  <h3 class="pregunta">
+    ¿Qué estás buscando?
+  </h3>
+
+  <h4 class="explora">
+    Explora nuestros catálogos principales
+  </h4>
+
+  <div class="contenedor-categorias">
+
+    {
+      categories?.map((cat) => (
+
+        <div class="card-categoria">
+
+          <img
+            src={cat.image_url || "/images/placeholder.png"}
+            alt={cat.name}
+          />
+
+          <h3>{cat.name}</h3>
+
+          <a
+            href={`/catalogo?categoria=${cat.id}`}
+            class="btn-ir-cat"
+          >
+            <span class="flecha"></span>
+          </a>
+
         </div>
-      </main>
+
+      ))
+    }
+
+  </div>
+
+</section>
+      
+      
 
       <Footer 
         storeName={store.name} 
         contacts={contacts || []} 
-        accent_color={store.accent_color} 
+        accent_color={coloresSeguros.footer_bg} 
       />
-    )}
+    )
+    }
 
   </body>
 </html>
 
 <style>
-  /* Estilos rápidos para centrar el catálogo */
+  /* ==========================================
+     DISEÑO ULTRA PREMIUM DE PRODUCTOS (TECH)
+     ========================================== */
   .catalog-container {
     max-width: 1200px;
-    margin: 2rem auto;
-    padding: 0 1rem;
+    margin: 4rem auto;
+    padding: 0 20px;
   }
+
+  .header-seccion {
+    margin-bottom: 2.5rem;
+  }
+
+  .header-seccion h2 {
+    color: #ffffff;
+    font-size: 32px;
+    font-weight: 900;
+    margin: 0;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+  }
+
+  .sub-seccion {
+    color: #64748b;
+    font-size: 15px;
+    margin: 5px 0 0 0;
+  }
+
   .products-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 30px;
   }
+
+  /* TARJETA INDUSTRIAL ESTILO DARK */
   .product-card {
-    background: white;
-    padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    background: #111827;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
   }
+
+  .product-card:hover {
+    transform: translateY(-8px);
+    border-color: #38bdf8; /* Al pasar el mouse ilumina el borde en azul tech */
+    box-shadow: 0 20px 40px rgba(56, 189, 248, 0.1);
+  }
+
+  /* Etiqueta flotante de categoría */
+  .badge-categoria {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #38bdf8;
+    z-index: 10;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    letter-spacing: 0.5px;
+  }
+
+  .contenedor-imagen {
+    width: 100%;
+    height: 240px;
+    overflow: hidden;
+    background: #0f172a;
+  }
+
   .product-card img {
     width: 100%;
-    height: 200px;
+    height: 100%;
     object-fit: cover;
-    border-radius: 6px;
+    transition: transform 0.5s ease;
+    filter: brightness(0.9);
   }
+
+  .product-card:hover img {
+    transform: scale(1.06);
+    filter: brightness(1);
+  }
+
+  .contenido-card {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+
+  .product-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+    text-transform: capitalize;
+  }
+
+  .precio {
+    font-size: 20px;
+    font-weight: 800;
+    color: #38bdf8; /* Precio brillante estilo tech */
+    margin: 0 0 20px 0;
+    font-family: monospace;
+  }
+
+  /* Botón de acción premium */
+  .btn-detalle {
+    text-decoration: none;
+    background: #1e293b;
+    color: #ffffff;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+    margin-top: auto; /* Empuja el botón al fondo siempre */
+  }
+
+  .product-card:hover .btn-detalle {
+    background: #38bdf8;
+    color: #0f172a;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+    border-color: transparent;
+  }
+
+  .btn-detalle i {
+    transition: transform 0.2s ease;
+  }
+
+  .product-card:hover .btn-detalle i {
+    transform: translateX(4px); /* La flecha se mueve al pasar el mouse */
+  }
+
+
+
+  .categorias-home {
+  max-width: 1200px;
+  margin: 3rem auto;
+  padding: 0 20px;
+  text-align: center;
+}
+
+.pregunta {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+
+.explora {
+  color: #94a3b8;
+  margin-bottom: 30px;
+}
+
+.contenedor-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 25px;
+}
+
+.card-categoria {
+  width: 220px;
+  background: #111827;
+  border-radius: 18px;
+  overflow: hidden;
+  padding: 15px;
+
+  transition: .3s;
+}
+
+.card-categoria:hover {
+  transform: translateY(-6px);
+}
+
+.card-categoria img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.card-categoria h3 {
+  color: white;
+  margin: 15px 0;
+}
+
+.btn-ir-cat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 38px;
+  height: 38px;
+
+  border-radius: 50%;
+
+  background: #38bdf8;
+}
+
+.flecha {
+  border: solid white;
+  border-width: 0 2px 2px 0;
+
+  display: inline-block;
+  padding: 4px;
+
+  transform: rotate(-45deg);
+}
+
 </style>
