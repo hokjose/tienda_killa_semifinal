@@ -3,39 +3,58 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 
 const { store, contacts = [] } = Astro.props;
+
+// Creamos colores por defecto por si el cliente no configuró alguno
+const primary = store?.primary_color || "#2563eb";
+const secondary = store?.secondary_color || "#407275";
+const accent = store?.accent_color || "#22c55e";
+const background = store?.background_color || "#f8fafc";
+const text = store?.text_color || "#0f172a";
 ---
 
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title>{store?.name || "Artesanías Killa"}</title>
 
-    <style is:global>
+    <style
+      is:global
+      define:vars={{
+        colorBg: background,
+        colorText: text,
+        colorPrimary: primary,
+        colorSecondary: secondary,
+        colorAccent: accent,
+      }}
+    >
+      :root {
+        --bg-color: var(--colorBg);
+        --text-color: var(--colorText);
+        --primary-color: var(--colorPrimary);
+        --secondary-color: var(--colorSecondary);
+        --accent-color: var(--colorAccent);
+      }
+
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
-
       html {
         scroll-behavior: smooth;
       }
 
       body {
         min-height: 100vh;
-
-        background: #f8fafc;
-
-        color: #0f172a;
-
+        /* Usamos las variables globales */
+        background: var(--bg-color);
+        color: var(--text-color);
         font-family:
           Inter,
           system-ui,
           -apple-system,
           sans-serif;
-
         display: flex;
         flex-direction: column;
       }
@@ -44,12 +63,10 @@ const { store, contacts = [] } = Astro.props;
         flex: 1;
         width: 100%;
       }
-
       img {
         max-width: 100%;
         display: block;
       }
-
       a {
         text-decoration: none;
       }
@@ -58,15 +75,9 @@ const { store, contacts = [] } = Astro.props;
 
   <body>
     <Header store={store} />
-
     <main>
       <slot />
     </main>
-
-    <Footer
-      storeName={store?.name}
-      contacts={contacts}
-      accent_color="#0b0f19"
-    />
+    <Footer storeName={store?.name} contacts={contacts} accent_color={accent} />
   </body>
 </html>
