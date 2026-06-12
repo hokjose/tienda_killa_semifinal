@@ -1,9 +1,250 @@
 ---
+import { supabase } from "../../lib/supabase";
 import MainLayout from "../../layouts/MainLayout.astro";
+
+// 1. OBTENER LAS RUTAS
+export async function getStaticPaths() {
+  const { data: products } = await supabase
+    .from("vw_store_public_products")
+    .select("slug");
+
+  if (!products) return [];
+
+  return products.map((product) => ({
+    params: { slug: product.slug },
+  }));
+}
+
+// 2. CAPTURAR EL SLUG Y EL ID DE LA TIENDA
+const { slug } = Astro.params;
+const STORE_ID = import.meta.env.PUBLIC_STORE_ID;
+
+// 3. TRAER INFO DEL PRODUCTO Y LA TIENDA
+const { data: product } = await supabase
+  .from("vw_store_public_product_detail")
+  .select("*")
+  .eq("slug", slug)
+  .single();
+
+const { data: store } = await supabase
+  .from("vw_store_public")
+  .select("*")
+  .eq("id", STORE_ID)
+  .single();
+
+const { data: contacts } = await supabase
+  .from("vw_store_public_contacts")
+  .select("*")
+  .eq("store_id", STORE_ID);
+
+// (Opcional) Armamos el mensaje para el WhatsApp
+const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${product?.name}. ¿Sigue disponible?`;
 ---
 
 <MainLayout store={store} contacts={contacts}>
-  <section class="producto-detalle">
-    <!-- Información del producto -->
-  </section>
+  <main class="detalle-container">
+    <a href="/catalogo" class="btn-volver">
+      <i class="fa-solid fa-arrow-left"></i> Volver al catálogo
+    </a>
+
+    <div class="producto-grid">
+      <div class="producto-imagen">
+        <img
+          src={product?.image_url || "/images/placeholder.png"}
+          alt={product?.name}
+        />
+      </div>
+
+      <div class="producto-info">
+        <span class="categoria">{product?.category_name || "Categoría"}</span>
+
+        <h1 class="nombre">{product?.name}</h1>
+
+        <p class="precio">{store?.currency_symbol} {product?.price}</p>
+
+        <div class="bloque-descripcion">
+          <h3>Descripción del producto</h3>
+          <p>
+            {
+              product?.description ||
+                "Este producto no tiene una descripción detallada por el momento."
+            }
+          </p>
+        </div>
+
+        <div class="accion-comprar">
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(mensajeWa)}`}
+            target="_blank"
+            class="btn-whatsapp"
+          >
+            <i class="fa-brands fa-whatsapp"></i> Consultar por WhatsApp
+          </a>
+          <p class="atencion-rapida">Atención rápida y personalizada ✨</p>
+        </div>
+      </div>
+    </div>
+  </main>
 </MainLayout>
+
+<style>
+  /* Contenedor general */
+  .detalle-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 6rem;
+  }
+
+  /* Botón volver */
+  .btn-volver {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    transition: color 0.3s;
+  }
+
+  .btn-volver:hover {
+    color: #0f172a;
+  }
+
+  /* El Grid de 2 columnas */
+  .producto-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Mitad y mitad */
+    gap: 50px;
+    align-items: start;
+  }
+
+  /* ====================
+     LADO IZQUIERDO
+     ==================== */
+  .producto-imagen {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+  }
+
+  .producto-imagen img {
+    width: 100%;
+    height: auto;
+    max-height: 600px;
+    object-fit: contain;
+    border-radius: 12px;
+  }
+
+  /* ====================
+     LADO DERECHO
+     ==================== */
+  .producto-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .categoria {
+    color: #8b5e3c; /* Color de tu diseño */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+
+  /* Nombre en negrito y grande */
+  .nombre {
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: #0f172a; /* Negro intenso */
+    line-height: 1.2;
+    margin: 0 0 15px 0;
+  }
+
+  /* Precio */
+  .precio {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #2563eb; /* Azul o tu color primario */
+    margin: 0 0 30px 0;
+  }
+
+  /* Descripción */
+  .bloque-descripcion {
+    background: #f8fafc;
+    padding: 25px;
+    border-radius: 16px;
+    margin-bottom: 35px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .bloque-descripcion h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: #0f172a;
+  }
+
+  .bloque-descripcion p {
+    color: #475569;
+    line-height: 1.7;
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  /* Botón WhatsApp */
+  .accion-comprar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .btn-whatsapp {
+    background: #25d366; /* Verde oficial de WhatsApp */
+    color: white;
+    text-decoration: none;
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding: 18px 30px;
+    border-radius: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 20px rgba(37, 211, 102, 0.2);
+  }
+
+  .btn-whatsapp i {
+    font-size: 1.4rem;
+  }
+
+  .btn-whatsapp:hover {
+    background: #1ebc59;
+    transform: translateY(-3px);
+    box-shadow: 0 15px 25px rgba(37, 211, 102, 0.3);
+  }
+
+  .atencion-rapida {
+    color: #64748b;
+    font-size: 0.95rem;
+    text-align: center;
+    margin: 0;
+  }
+
+  /* ====================
+     RESPONSIVE (MÓVILES)
+     ==================== */
+  @media (max-width: 900px) {
+    .producto-grid {
+      grid-template-columns: 1fr; /* Se pone a una sola columna */
+      gap: 30px;
+    }
+
+    .nombre {
+      font-size: 2.2rem;
+    }
+  }
+</style>

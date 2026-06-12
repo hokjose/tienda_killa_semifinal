@@ -70,9 +70,10 @@ const { data: categories } = await supabase
 
             <div class="contenido-card">
               <h3>{product.name}</h3>
+
               <p class="precio">
-                {store?.currency_symbol}
-                {product.price}
+                {store?.currency_symbol} {product.price}
+                <span class="moneda-codigo">{store?.currency_code}</span>
               </p>
 
               <a
@@ -80,7 +81,15 @@ const { data: categories } = await supabase
                 class="btn-detalle"
                 title="Ver producto"
               >
-                <i class="fa-solid fa-bag-shopping icono-bolsa" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M16 7V6c0-2.206-1.794-4-4-4S8 3.794 8 6v1H3v13c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2V8h-5zM10 6c0-1.103.897-2 2-2s2 .897 2 2v1h-4V6zm-2 5a2 2 0 1 0 4 0h2a4 4 0 1 1-8 0h2z" />
+                </svg>
               </a>
             </div>
           </div>
@@ -118,19 +127,16 @@ const { data: categories } = await supabase
   .header-textos h2 {
     font-size: clamp(2rem, 5vw, 2.5rem);
     font-weight: 800;
-    color: #8b5e3c; /* Color marrón de tu diseño */
+    color: black; /* Color negro  de tu "nuestro catalogo" */
     margin: 0 0 5px 0;
   }
 
   .sub-seccion {
-    color: #d4a373; /* Marrón clarito para el subtítulo */
+    color: #615f5c; /* Marrón clarito para el subtítulo */
     font-size: 1.1rem;
     margin: 0;
   }
 
-  /* =========================
-     BARRA DE FILTROS Y BÚSQUEDA
-     ========================= */
   /* =========================
      BARRA DE FILTROS Y BÚSQUEDA
      ========================= */
@@ -166,7 +172,7 @@ const { data: categories } = await supabase
   }
 
   .buscador:focus-within {
-    border-color: #8b5e3c; /* Se pinta de marrón al escribir */
+    border-color: black; /* Se pinta de marrón al escribir */
   }
 
   .buscador i {
@@ -185,10 +191,11 @@ const { data: categories } = await supabase
     color: #94a3b8;
   }
 
+  /*boton de las categorias */
   .btn-filtro {
     background: transparent;
     border: none;
-    color: #d4a373;
+    color: black;
     font-size: 1.2rem;
     cursor: pointer;
     padding: 5px;
@@ -214,33 +221,59 @@ const { data: categories } = await supabase
     height: 0;
   }
 
+  /*botones de las categorias*/
   .pill {
-    background: #f8fafc; /* Fondo gris súper clarito */
-    border: 1px solid #e2e8f0; /* Borde sutil */
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     color: #475569;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     padding: 10px 22px;
-    border-radius: 30px; /* Bordes bien redondeados */
+    border-radius: 30px;
     white-space: nowrap;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03); /* Sombra elegante */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+
+    /* 👇 MAGIA DE MOVIMIENTO: Transición con efecto "rebote" elástico 👇 */
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
   .pill:hover {
     background: #ffffff;
     border-color: #cbd5e1;
-    color: #8b5e3c;
-    transform: translateY(-3px); /* Se levantan un poquito al pasar el mouse */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+    color: black; /* <- Le faltaba el punto y coma aquí */
+
+    /* Sube más, crece un 3% y la sombra se expande para dar efecto 3D */
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
   }
 
+  /* 👇 NUEVO EFECTO TÁCTIL: Cuando el usuario hace clic, el botón se hunde 👇 */
+  .pill:active {
+    transform: translateY(2px) scale(0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Estado normal del botón ACTIVO */
   .pill.active {
-    background: #8b5e3c;
-    border-color: #8b5e3c;
+    background: black;
+    border-color: white;
     color: white;
-    box-shadow: 0 4px 15px rgba(139, 94, 60, 0.3); /* Resplandor marrón */
+    transform: translateY(-2px); /* Ligeramente elevado por defecto */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+    /* Hereda automáticamente la transición elástica de .pill */
+  }
+
+  /* 👇 Efecto al pasar el mouse sobre el botón ACTIVO 👇 */
+  .pill.active:hover {
+    transform: translateY(-5px) scale(1.03); /* Sube un poquito más y crece */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); /* Sombra más intensa */
+  }
+
+  /* 👇 Efecto al hacer CLIC sobre el botón ACTIVO 👇 */
+  .pill.active:active {
+    transform: translateY(2px) scale(0.95); /* Se hunde como los demás */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* La sombra se achica al hundirse */
   }
 
   /* =========================
@@ -281,7 +314,8 @@ const { data: categories } = await supabase
     background: #ffffff;
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -290,7 +324,8 @@ const { data: categories } = await supabase
 
   .product-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent-color); /* Borde dinámico al pasar el mouse */
   }
 
   /* =========================
@@ -300,7 +335,7 @@ const { data: categories } = await supabase
     position: absolute;
     top: 12px;
     left: 12px;
-    background: #0f172a;
+    background: var(--primary-color); /* Color dinámico */
     color: white;
     padding: 6px 12px;
     border-radius: 999px;
@@ -316,6 +351,7 @@ const { data: categories } = await supabase
     width: 100%;
     height: 240px;
     overflow: hidden;
+    background: #f8fafc;
   }
 
   .contenedor-imagen img {
@@ -326,7 +362,7 @@ const { data: categories } = await supabase
   }
 
   .product-card:hover img {
-    transform: scale(1.08);
+    transform: scale(1.05);
   }
 
   /* =========================
@@ -337,49 +373,54 @@ const { data: categories } = await supabase
     flex-direction: column;
     flex: 1;
     padding: 18px;
+    position: relative;
   }
 
   .contenido-card h3 {
-    margin: 0 0 10px;
-    color: #0f172a;
+    margin: 0 0 8px;
+    color: var(--text-color);
     font-size: 1.1rem;
     font-weight: 700;
+    padding-right: 45px; /* Evita que el título largo choque con el botón */
   }
 
   .precio {
     font-size: 1.3rem;
     font-weight: 800;
-    color: #2563eb;
-    margin-bottom: 20px;
+    color: var(--text-color);
+    margin-bottom: 5px;
+  }
+
+  .moneda-codigo {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-left: 4px;
   }
 
   /* =========================
-     BOTÓN SOLO ICONO
+     BOTÓN DETALLE (SVG)
      ========================= */
   .btn-detalle {
-    margin-top: auto;
+    position: absolute;
+    bottom: 18px;
+    right: 18px;
     text-decoration: none;
-
-    background: #0f172a;
+    background: var(--primary-color); /* Color dinámico */
     color: white;
-    padding: 12px;
+    width: 42px;
+    height: 42px;
     border-radius: 12px;
-    transition: all 0.3s ease;
-
-    /* Flexbox para centrar el icono perfectamente */
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: all 0.3s ease;
   }
 
   .btn-detalle:hover {
-    background: #8b5e3c;
-    transform: translateY(-2px);
-  }
-
-  /* Ajustamos el tamaño del icono ya que está solo */
-  .icono-bolsa {
-    font-size: 1.2rem;
+    background: var(--accent-color); /* Color dinámico al pasar el mouse */
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
   }
 
   /* =========================
