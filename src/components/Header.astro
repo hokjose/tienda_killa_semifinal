@@ -9,9 +9,15 @@ interface Props {
     primary_color: string;
     text_color: string;
   };
+  // 👇 1. SOLUCIÓN: Declaramos contacts aquí para que TypeScript no tire error 👇
+  contacts: Array<{
+    type: string;
+    value: string;
+  }>;
 }
 
-const { store } = Astro.props;
+// 👇 2. SOLUCIÓN: Una sola línea limpia para recibir ambas propiedades de golpe 👇
+const { store, contacts } = Astro.props;
 ---
 
 <header class="barra-navegacion-pyme">
@@ -38,7 +44,12 @@ const { store } = Astro.props;
     <div class="Botones">
       <a href="/" class="link-futurista">Inicio</a>
       <a href="/catalogo" class="link-futurista">Catálogo</a>
-      <a href="/contacto">
+
+      <a
+        href={`https://wa.me/${contacts?.find((c) => c.type?.toLowerCase() === "whatsapp" || c.type?.toLowerCase() === "telefono")?.value?.replace(/\D/g, "") || "51999999999"}`}
+        target="_blank"
+        style="text-decoration: none;"
+      >
         <button class="btn-ciber">Contactar</button>
       </a>
     </div>
@@ -53,7 +64,7 @@ const { store } = Astro.props;
   }}
 >
   /* ==========================================
-     HEADER FUTURISTA - EFECTO CRISTAL Y NEÓN
+      HEADER FUTURISTA - EFECTO CRISTAL Y NEÓN
      ========================================== */
   .barra-navegacion-pyme {
     background-color: #ffffff !important; /* Forzado a color blanco puro */
@@ -162,11 +173,12 @@ const { store } = Astro.props;
     letter-spacing: 0.5px !important;
   }
 
-  /* BOTONES DE NAVEGACIÓN */
-  /* BOTONES DE NAVEGACIÓN */
+  /* ==========================================
+     BOTONES DE NAVEGACIÓN LIMPIOS Y DINÁMICOS
+     ========================================== */
   .link-futurista {
     text-decoration: none;
-    color: var(--colorTextoTech);
+    color: #000000 !important; /* Forzado a color negro por defecto */
 
     font-weight: 800;
     font-size: 14px;
@@ -175,35 +187,14 @@ const { store } = Astro.props;
     letter-spacing: 1px;
 
     position: relative;
-
     transition: color 0.3s ease;
   }
 
-  /* Línea azul animada */
-  .link-futurista::after {
-    content: "";
+  /* ❌ SE ELIMINÓ TODO EL BLOQUE DEL ::AFTER PARA QUITAR LA LÍNEA AZUL ANIMADA ABAJO ❌ */
 
-    position: absolute;
-
-    left: 0;
-    bottom: -6px;
-
-    width: 0;
-    height: 2px;
-
-    background: #3b82f6;
-
-    border-radius: 999px;
-
-    transition: width 0.3s ease;
-  }
-
+  /* 👇 AL PASAR EL MOUSE: Cambia únicamente al color primario dinámico de Supabase 👇 */
   .link-futurista:hover {
-    color: #3b82f6;
-  }
-
-  .link-futurista:hover::after {
-    width: 100%;
+    color: var(--colorAcentoTech) !important;
   }
 
   /* Botón interactivo tipo Cyberpunk / Holograma */
@@ -236,6 +227,7 @@ const { store } = Astro.props;
   .btn-ciber:active {
     transform: translateY(0) scale(0.95);
   }
+
   .Botones {
     display: flex;
     gap: 3rem;

@@ -1,34 +1,58 @@
 ---
-import MainLayout from "../../layouts/MainLayout.astro"; // Asegúrate de que esta ruta sea correcta
+import MainLayout from "../../layouts/MainLayout.astro";
 import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
 import { supabase } from "../../lib/supabase";
 
 const STORE_ID = import.meta.env.PUBLIC_STORE_ID;
 
-const { data: store } = await supabase
+// 🛑 LOGS DE INICIO DE CARGA
+console.log("=== DIAGNÓSTICO DE CATÁLOGO ===");
+console.log("STORE_ID configurado:", STORE_ID);
+
+const { data: store, error: errorStore } = await supabase
   .from("vw_store_public")
   .select("*")
   .eq("id", STORE_ID)
   .single();
 
-const { data: contacts } = await supabase
+if (errorStore) console.error("❌ Error cargando Store:", errorStore);
+
+const { data: contacts, error: errorContacts } = await supabase
   .from("vw_store_public_contacts")
   .select("*")
   .eq("store_id", STORE_ID);
 
-const { data: products } = await supabase
+if (errorContacts) console.error("❌ Error cargando Contactos:", errorContacts);
+
+const { data: products, error: errorProducts } = await supabase
   .from("vw_store_public_products")
   .select("*")
   .eq("store_id", STORE_ID)
   .order("display_order", { ascending: true });
 
-// 👇 AGREGA ESTA LÍNEA NUEVA 👇
-const { data: categories } = await supabase
+if (errorProducts) {
+  console.error("❌ Error cargando Productos:", errorProducts);
+} else {
+  console.log(
+    `📦 Total de productos devueltos por Supabase: ${products?.length || 0}`,
+  );
+  products?.forEach((p, index) => {
+    console.log(
+      `[Producto #${index + 1}] Nombre: "${p.name}" | Slug en BD: "${p.slug}" | URL generada: "/producto/${p.slug}"`,
+    );
+  });
+}
+
+const { data: categories, error: errorCategories } = await supabase
   .from("vw_store_public_categories")
   .select("*")
   .eq("store_id", STORE_ID)
   .order("display_order", { ascending: true });
+
+if (errorCategories)
+  console.error("❌ Error cargando Categorías:", errorCategories);
+console.log("===============================");
 ---
 
 <MainLayout store={store} contacts={contacts}>
@@ -40,28 +64,63 @@ const { data: categories } = await supabase
       </div>
 
       <div class="barra-filtros">
-        <div class="grupo-izq">
-          <div class="buscador">
+        <div class="grupo-izq" style="position: relative;">
+          <div class="buscador" style="position: relative;">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Buscar productos..." />
+            <input
+              type="text"
+              id="product-search"
+              placeholder="Buscar productos..."
+              style="padding-right: 30px;"
+            />
+
+            <button
+              id="clear-search"
+              type="button"
+              style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.1rem; color: #94a3b8; cursor: pointer; padding: 0; font-weight: bold;"
+            >
+              ✕
+            </button>
           </div>
           <button class="btn-filtro">
             <i class="fa-solid fa-filter"></i>
           </button>
+
+          <div
+            id="no-products-message"
+            style="display: none; position: absolute; top: 100%; left: 0; background: #fff5f5; color: #e53e3e; padding: 12px 16px; border-radius: 8px; border: 1px dashed #f5c6cb; margin-top: 8px; z-index: 50; width: 100%; max-width: 350px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"
+          >
+            lo sentimos , aun no tenemos ese producto 🥲
+          </div>
         </div>
 
-        <div class="categorias-lista">
-          <button class="pill active">Todos</button>
+        <div class="categorias-lista" id="category-filters">
+          <button class="pill active" data-category="all">Todos</button>
 
-          {categories?.map((cat) => <button class="pill">{cat.name}</button>)}
+          {
+            categories?.map((cat) => (
+              <button class="pill" data-category={cat.name.toLowerCase()}>
+                {cat.name}
+              </button>
+            ))
+          }
         </div>
       </div>
     </div>
 
-    <div class="products-grid">
+    <div class="products-grid" id="products-grid">
       {
         products?.map((product) => (
-          <div class="product-card">
+          <div
+            class="product-card"
+            data-product-category={product.category_name?.toLowerCase()}
+          >
+            {!product.slug && (
+              <div style="position:absolute; top:0; right:0; background:red; color:white; font-size:10px; padding:4px; z-index:10; font-weight:bold;">
+                ⚠️ SIN SLUG EN BD
+              </div>
+            )}
+
             <div class="badge-categoria">{product.category_name}</div>
 
             <div class="contenedor-imagen">
@@ -80,6 +139,8 @@ const { data: categories } = await supabase
                 href={`/producto/${product.slug}`}
                 class="btn-detalle"
                 title="Ver producto"
+                data-debug-slug={product.slug}
+                data-debug-name={product.name}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -100,56 +161,130 @@ const { data: categories } = await supabase
 </MainLayout>
 
 <style>
-  /* =========================
-     CONTENEDOR PRINCIPAL
-     ========================= */
+  .product-card.hidden {
+    display: none !important;
+  }
+</style>
+
+<script>
+  function initFilters() {
+    // 1. CAPTURAMOS LOS ELEMENTOS (Incluyendo el nuevo botón de limpiar)
+    const searchInput = document.getElementById(
+      "product-search",
+    ) as HTMLInputElement;
+    const clearSearchBtn = document.getElementById(
+      "clear-search",
+    ) as HTMLButtonElement;
+    const filterButtons = document.querySelectorAll("#category-filters .pill");
+    const productCards = document.querySelectorAll(
+      "#products-grid .product-card",
+    );
+    const noProductsMessage = document.getElementById("no-products-message");
+
+    let selectedCategory = "all";
+
+    // 2. FUNCIÓN DE FILTRADO
+    function filterProducts() {
+      const searchText = searchInput
+        ? searchInput.value.toLowerCase().trim()
+        : "";
+      let visibleCount = 0;
+
+      // Mostrar u ocultar la "X" dinámicamente según si hay texto escrito
+      if (clearSearchBtn) {
+        clearSearchBtn.style.display = searchText.length > 0 ? "block" : "none";
+      }
+
+      productCards.forEach((card) => {
+        const productCategory = card.getAttribute("data-product-category");
+        const productName =
+          card.querySelector("h3")?.textContent?.toLowerCase() || "";
+
+        const matchesCategory =
+          selectedCategory === "all" || productCategory === selectedCategory;
+        const matchesSearch = productName.includes(searchText);
+
+        if (matchesCategory && matchesSearch) {
+          card.classList.remove("hidden");
+          visibleCount++;
+        } else {
+          card.classList.add("hidden");
+        }
+      });
+
+      // Control del cartel de error
+      if (noProductsMessage) {
+        if (visibleCount === 0) {
+          noProductsMessage.style.display = "block";
+        } else {
+          noProductsMessage.style.display = "none";
+        }
+      }
+    }
+
+    // 3. 👇 NUEVA LÓGICA: Evento al hacer clic en la "X" 👇
+    if (clearSearchBtn && searchInput) {
+      clearSearchBtn.addEventListener("click", () => {
+        searchInput.value = ""; // Borra el texto ingresado
+        filterProducts(); // Ejecuta el filtro (limpiará el error y restaurará las tarjetas)
+        searchInput.focus(); // Devuelve el cursor al cuadro de texto
+      });
+    }
+
+    // Listeners del input y categorías
+    if (searchInput) {
+      searchInput.addEventListener("input", filterProducts);
+    }
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        filterButtons.forEach((btn) => btn.classList.remove("active"));
+        button.classList.add("active");
+        selectedCategory = button.getAttribute("data-category") || "all";
+        filterProducts();
+      });
+    });
+  }
+
+  // Ejecución inmediata
+  initFilters();
+</script>
+
+<style>
+  /* Tus estilos CSS nativos se conservan idénticos */
   .catalog-container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 2rem 1rem 4rem;
     min-height: 70vh;
   }
-
-  /* =========================
-     CABECERA DEL CATÁLOGO
-     ========================= */
-  /* =========================
-     NUEVA CABECERA DEL CATÁLOGO
-     ========================= */
   .header-seccion {
     display: flex;
     flex-direction: column;
     gap: 20px;
     margin-bottom: 3rem;
-    text-align: left; /* Alineado a la izquierda como tu foto */
+    text-align: left;
   }
-
   .header-textos h2 {
     font-size: clamp(2rem, 5vw, 2.5rem);
     font-weight: 800;
-    color: black; /* Color negro  de tu "nuestro catalogo" */
+    color: black;
     margin: 0 0 5px 0;
   }
-
   .sub-seccion {
-    color: #615f5c; /* Marrón clarito para el subtítulo */
+    color: #615f5c;
     font-size: 1.1rem;
     margin: 0;
   }
-
-  /* =========================
-     BARRA DE FILTROS Y BÚSQUEDA
-     ========================= */
   .barra-filtros {
     display: flex;
-    justify-content: space-between; /* Empuja el grupo izq a un lado y categorías al otro */
+    justify-content: space-between;
     align-items: center;
     gap: 20px;
     flex-wrap: wrap;
     margin-top: 15px;
     width: 100%;
   }
-
   .grupo-izq {
     display: flex;
     align-items: center;
@@ -157,7 +292,6 @@ const { data: categories } = await supabase
     flex: 1;
     min-width: 280px;
   }
-
   .buscador {
     display: flex;
     align-items: center;
@@ -167,14 +301,12 @@ const { data: categories } = await supabase
     padding: 10px 15px;
     flex: 1;
     max-width: 350px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02); /* Sombra muy sutil */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
     transition: border-color 0.3s ease;
   }
-
   .buscador:focus-within {
-    border-color: black; /* Se pinta de marrón al escribir */
+    border-color: black;
   }
-
   .buscador i {
     color: #94a3b8;
     margin-right: 10px;
@@ -190,8 +322,6 @@ const { data: categories } = await supabase
   .buscador input::placeholder {
     color: #94a3b8;
   }
-
-  /*boton de las categorias */
   .btn-filtro {
     background: transparent;
     border: none;
@@ -201,14 +331,9 @@ const { data: categories } = await supabase
     padding: 5px;
     transition: transform 0.2s ease;
   }
-
   .btn-filtro:hover {
     transform: scale(1.1);
   }
-
-  /* =========================
-     PÍLDORAS DE CATEGORÍAS (MÁS DISEÑO)
-     ========================= */
   .categorias-lista {
     display: flex;
     align-items: center;
@@ -216,12 +341,9 @@ const { data: categories } = await supabase
     overflow-x: auto;
     padding-bottom: 5px;
   }
-
   .categorias-lista::-webkit-scrollbar {
     height: 0;
   }
-
-  /*botones de las categorias*/
   .pill {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
@@ -233,52 +355,34 @@ const { data: categories } = await supabase
     border-radius: 30px;
     white-space: nowrap;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
-
-    /* 👇 MAGIA DE MOVIMIENTO: Transición con efecto "rebote" elástico 👇 */
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
-
   .pill:hover {
     background: #ffffff;
     border-color: #cbd5e1;
-    color: black; /* <- Le faltaba el punto y coma aquí */
-
-    /* Sube más, crece un 3% y la sombra se expande para dar efecto 3D */
+    color: black;
     transform: translateY(-4px) scale(1.03);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
   }
-
-  /* 👇 NUEVO EFECTO TÁCTIL: Cuando el usuario hace clic, el botón se hunde 👇 */
   .pill:active {
     transform: translateY(2px) scale(0.95);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
-
-  /* Estado normal del botón ACTIVO */
   .pill.active {
     background: black;
     border-color: white;
     color: white;
-    transform: translateY(-2px); /* Ligeramente elevado por defecto */
+    transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-    /* Hereda automáticamente la transición elástica de .pill */
   }
-
-  /* 👇 Efecto al pasar el mouse sobre el botón ACTIVO 👇 */
   .pill.active:hover {
-    transform: translateY(-5px) scale(1.03); /* Sube un poquito más y crece */
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); /* Sombra más intensa */
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
   }
-
-  /* 👇 Efecto al hacer CLIC sobre el botón ACTIVO 👇 */
   .pill.active:active {
-    transform: translateY(2px) scale(0.95); /* Se hunde como los demás */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* La sombra se achica al hundirse */
+    transform: translateY(2px) scale(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
-
-  /* =========================
-     BOTÓN VOLVER
-     ========================= */
   .btn-volver {
     display: inline-flex;
     align-items: center;
@@ -291,25 +395,18 @@ const { data: categories } = await supabase
     font-weight: 700;
     transition: all 0.3s ease;
   }
-
   .btn-volver:hover {
     background: #38bdf8;
     color: #0f172a;
     transform: translateY(-2px);
   }
-
-  /* =========================
-     GRID RESPONSIVO
-     ========================= */
   .products-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    /* 👇 SE CAMBIÓ 'auto-fit' POR 'auto-fill' PARA FIJAR EL TAMAÑO 👇 */
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 24px;
   }
 
-  /* =========================
-     TARJETA PRODUCTO
-     ========================= */
   .product-card {
     background: #ffffff;
     border-radius: 20px;
@@ -321,21 +418,16 @@ const { data: categories } = await supabase
     flex-direction: column;
     position: relative;
   }
-
   .product-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-    border-color: var(--accent-color); /* Borde dinámico al pasar el mouse */
+    border-color: var(--accent-color);
   }
-
-  /* =========================
-     ETIQUETA CATEGORÍA
-     ========================= */
   .badge-categoria {
     position: absolute;
     top: 12px;
     left: 12px;
-    background: var(--primary-color); /* Color dinámico */
+    background: var(--primary-color);
     color: white;
     padding: 6px 12px;
     border-radius: 999px;
@@ -343,31 +435,21 @@ const { data: categories } = await supabase
     font-weight: 700;
     z-index: 2;
   }
-
-  /* =========================
-     IMAGEN
-     ========================= */
   .contenedor-imagen {
     width: 100%;
     height: 240px;
     overflow: hidden;
     background: #f8fafc;
   }
-
   .contenedor-imagen img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform 0.4s ease;
   }
-
   .product-card:hover img {
     transform: scale(1.05);
   }
-
-  /* =========================
-     CONTENIDO
-     ========================= */
   .contenido-card {
     display: flex;
     flex-direction: column;
@@ -375,38 +457,31 @@ const { data: categories } = await supabase
     padding: 18px;
     position: relative;
   }
-
   .contenido-card h3 {
     margin: 0 0 8px;
     color: var(--text-color);
     font-size: 1.1rem;
     font-weight: 700;
-    padding-right: 45px; /* Evita que el título largo choque con el botón */
+    padding-right: 45px;
   }
-
   .precio {
     font-size: 1.3rem;
     font-weight: 800;
     color: var(--text-color);
     margin-bottom: 5px;
   }
-
   .moneda-codigo {
     font-size: 0.8rem;
     font-weight: 600;
     color: #64748b;
     margin-left: 4px;
   }
-
-  /* =========================
-     BOTÓN DETALLE (SVG)
-     ========================= */
   .btn-detalle {
     position: absolute;
     bottom: 18px;
     right: 18px;
     text-decoration: none;
-    background: var(--primary-color); /* Color dinámico */
+    background: var(--primary-color);
     color: white;
     width: 42px;
     height: 42px;
@@ -416,16 +491,11 @@ const { data: categories } = await supabase
     align-items: center;
     transition: all 0.3s ease;
   }
-
   .btn-detalle:hover {
-    background: var(--accent-color); /* Color dinámico al pasar el mouse */
+    background: var(--accent-color);
     transform: scale(1.1) translateY(-2px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
   }
-
-  /* =========================
-     TABLETS
-     ========================= */
   @media (max-width: 768px) {
     .catalog-container {
       padding: 1.5rem 1rem 3rem;
@@ -434,10 +504,6 @@ const { data: categories } = await supabase
       height: 220px;
     }
   }
-
-  /* =========================
-     CELULARES
-     ========================= */
   @media (max-width: 480px) {
     .header-seccion h2 {
       font-size: 2rem;

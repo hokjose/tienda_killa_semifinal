@@ -29,21 +29,33 @@ const currentYear = new Date().getFullYear();
       <h4>Contáctanos</h4>
       <ul>
         {
-          contacts.map((contact) => (
-            <li>
-              <a href={contact.url} target="_blank" rel="noopener noreferrer">
-                {contact.is_primary && (
-                  <span
-                    class="badge"
-                    style={`background-color: ${accent_color}`}
-                  >
-                    Principal
-                  </span>
-                )}
-                <strong>{contact.type}:</strong> {contact.name}
-              </a>
-            </li>
-          ))
+          contacts.map((contact) => {
+            // 👇 SOLUCIÓN: Si es WhatsApp o Teléfono, armamos el link dinámico; si no, dejamos el url que venga de Supabase
+            const isWhatsapp =
+              contact.type?.toLowerCase() === "whatsapp" ||
+              contact.type?.toLowerCase() === "telefono";
+            const cleanNumber = contact.value?.replace(/\D/g, "") || "";
+            const finalUrl = isWhatsapp
+              ? `https://wa.me/${cleanNumber}`
+              : contact.url;
+
+            return (
+              <li>
+                <a href={finalUrl} target="_blank" rel="noopener noreferrer">
+                  {contact.is_primary && (
+                    <span
+                      class="badge"
+                      style={`background-color: ${accent_color}`}
+                    >
+                      Principal
+                    </span>
+                  )}
+                  <strong>{contact.type}:</strong>{" "}
+                  {contact.name || contact.value}
+                </a>
+              </li>
+            );
+          })
         }
       </ul>
     </div>

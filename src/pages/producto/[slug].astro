@@ -2,65 +2,151 @@
 import { supabase } from "../../lib/supabase";
 import MainLayout from "../../layouts/MainLayout.astro";
 
-// 1. OBTENER LAS RUTAS
-export async function getStaticPaths() {
-  const { data: products } = await supabase
-    .from("vw_store_public_products")
-    .select("slug");
+// 👇 1. LÍNEA CLUCIAL: Obliga a este archivo a procesarse siempre en el Servidor en tiempo real 👇
+export const prerender = false;
 
-  if (!products) return [];
-
-  return products.map((product) => ({
-    params: { slug: product.slug },
-  }));
-}
-
-// 2. CAPTURAR EL SLUG Y EL ID DE LA TIENDA
+// 2. CAPTURAR EL SLUG ACTUAL DESDE LA URL Y EL ID DE LA TIENDA
 const { slug } = Astro.params;
 const STORE_ID = import.meta.env.PUBLIC_STORE_ID;
 
-// 3. TRAER INFO DEL PRODUCTO Y LA TIENDA
-const { data: product } = await supabase
+console.log("--------------------------------------------------");
+console.log(
+  `🔍 [Detalle Producto SSR] Renderizando página para el slug: "${slug}"`,
+);
+
+// 3. TRAER INFO DEL PRODUCTO DESDE SUPABASE
+const { data: product, error: errorProduct } = await supabase
   .from("vw_store_public_product_detail")
   .select("*")
   .eq("slug", slug)
   .single();
 
-const { data: store } = await supabase
+if (errorProduct) {
+  console.error(
+    `❌ [Detalle Producto] Error cargando detalle para "${slug}":`,
+    errorProduct,
+  );
+} else {
+  console.log(
+    `✅ [Detalle Producto] Datos cargados con éxito para: "${product?.name}"`,
+  );
+}
+
+// 4. TRAER IMÁGENES SECUNDARIAS DE LA GALERÍA (Las miniaturas pequeñas)
+const { data: galleryImages } = await supabase
+  .from("vw_store_public_product_images")
+  .select("*")
+  .eq("product_id", product?.id || "")
+  .order("display_order", { ascending: true });
+
+// 5. TRAER DATOS DE TIENDA Y CONTACTO
+const { data: store, error: errorStore } = await supabase
   .from("vw_store_public")
   .select("*")
   .eq("id", STORE_ID)
   .single();
 
-const { data: contacts } = await supabase
+if (errorStore)
+  console.error(
+    "❌ [Detalle Producto] Error cargando datos de la Tienda:",
+    errorStore,
+  );
+
+const { data: contacts, error: errorContacts } = await supabase
   .from("vw_store_public_contacts")
   .select("*")
   .eq("store_id", STORE_ID);
 
-// (Opcional) Armamos el mensaje para el WhatsApp
-const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${product?.name}. ¿Sigue disponible?`;
+if (errorContacts)
+  console.error(
+    "❌ [Detalle Producto] Error cargando contactos:",
+    errorContacts,
+  );
+
+// 🛠️ LÓGICA DE REDIRECCIÓN DE WHATSAPP
+const contactoWhatsapp = contacts?.find(
+  (c) => c.type === "whatsapp" || c.name?.toLowerCase() === "whatsapp",
+);
+const numeroWa = contactoWhatsapp
+  ? contactoWhatsapp.url.replace(/\D/g, "")
+  : "51999999999";
+
+const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${product?.name || "este producto"}. ¿Sigue disponible?`;
+const whatsappUrlFinal = `https://wa.me/${numeroWa}?text=${encodeURIComponent(mensajeWa)}`;
+
+console.log(`📱 [WhatsApp Debug] Link generado: ${whatsappUrlFinal}`);
+console.log("--------------------------------------------------");
 ---
 
 <MainLayout store={store} contacts={contacts}>
   <main class="detalle-container">
+    <div class="debug-panel-visual">
+      <strong>🐞 Inspector Técnico (Panel de Admin Ready):</strong><br />
+      • Slug de URL: <code style="color: yellow;">{slug}</code><br />
+      • ¿Producto Encontrado?: {
+        product ? (
+          <span style="color: #4ade80;">SÍ ✅ (¡Listo para vender!)</span>
+        ) : (
+          <span style="color: #f87171;">
+            NO ❌ (Revisa el slug en el Panel de Admin)
+          </span>
+        )
+      }<br />
+      {
+        !product && (
+          <p style="margin: 5px 0 0; color: #fca5a5; font-size: 11px;">
+            ⚠️ Si acabas de agregar el producto y dice "NO", verifica que el
+            slug guardado en Supabase coincida exactamente con el de la URL.
+          </p>
+        )
+      }
+    </div>
+
     <a href="/catalogo" class="btn-volver">
       <i class="fa-solid fa-arrow-left"></i> Volver al catálogo
     </a>
 
     <div class="producto-grid">
-      <div class="producto-imagen">
-        <img
-          src={product?.image_url || "/images/placeholder.png"}
-          alt={product?.name}
-        />
+      <div class="producto-galeria">
+        <div class="producto-imagen">
+          <img
+            id="main-product-image"
+            src={product?.image_url || "/images/placeholder.png"}
+            alt={product?.name || "Cargando..."}
+          />
+        </div>
+
+        {
+          galleryImages && galleryImages.length > 0 && (
+            <div class="miniaturas-contenedor">
+              {/* Incluimos la principal como miniatura solo si hay galería */}
+              <div class="miniatura active">
+                <img
+                  src={product?.image_url || "/images/placeholder.png"}
+                  alt="Principal"
+                />
+              </div>
+
+              {/* Mapeamos las imágenes de Supabase */}
+              {galleryImages.map((img) => (
+                <div class="miniatura">
+                  <img src={img.image_url} alt="Galería secundaria" />
+                </div>
+              ))}
+            </div>
+          )
+        }
       </div>
 
       <div class="producto-info">
         <span class="categoria">{product?.category_name || "Categoría"}</span>
 
-        <h1 class="nombre">{product?.name}</h1>
+        <h1 class="nombre">{product?.name || "Producto No Encontrado"}</h1>
 
-        <p class="precio">{store?.currency_symbol} {product?.price}</p>
+        <p class="precio">
+          {store?.currency_symbol}
+          {product?.price || "0.00"}
+        </p>
 
         <div class="bloque-descripcion">
           <h3>Descripción del producto</h3>
@@ -74,9 +160,11 @@ const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${pro
 
         <div class="accion-comprar">
           <a
-            href={`https://wa.me/?text=${encodeURIComponent(mensajeWa)}`}
+            href={whatsappUrlFinal}
             target="_blank"
             class="btn-whatsapp"
+            id="btn-whatsapp-debug"
+            data-product-name={product?.name}
           >
             <i class="fa-brands fa-whatsapp"></i> Consultar por WhatsApp
           </a>
@@ -87,15 +175,66 @@ const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${pro
   </main>
 </MainLayout>
 
+<script>
+  function initGallery() {
+    const mainImg = document.getElementById(
+      "main-product-image",
+    ) as HTMLImageElement;
+    const thumbnails = document.querySelectorAll(".miniatura");
+
+    if (!mainImg || thumbnails.length === 0) return;
+
+    thumbnails.forEach((thumb) => {
+      thumb.addEventListener("click", () => {
+        thumbnails.forEach((t) => t.classList.remove("active"));
+        thumb.classList.add("active");
+
+        const thumbImg = thumb.querySelector("img");
+        if (thumbImg && mainImg) {
+          mainImg.style.opacity = "0.3";
+          setTimeout(() => {
+            mainImg.src = thumbImg.src;
+            mainImg.style.opacity = "1";
+          }, 150);
+        }
+      });
+    });
+
+    // Log del botón de WhatsApp
+    const btnWa = document.getElementById("btn-whatsapp-debug");
+    if (btnWa) {
+      btnWa.addEventListener("click", () => {
+        const nombrePrd = btnWa.getAttribute("data-product-name");
+        console.log(
+          `[WhatsApp Cliente] Abriendo chat externo para consultar por: "${nombrePrd}"`,
+        );
+      });
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", initGallery);
+</script>
+
 <style>
-  /* Contenedor general */
+  /* Panel de Depuración */
+  .debug-panel-visual {
+    background: #1e293b;
+    color: #cbd5e1;
+    font-family: monospace;
+    font-size: 13px;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 2px dashed #3b82f6;
+    text-align: left;
+  }
+
+  /* Estilos del layout general */
   .detalle-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 3rem 1.5rem 6rem;
   }
-
-  /* Botón volver */
   .btn-volver {
     display: inline-flex;
     align-items: center;
@@ -106,22 +245,22 @@ const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${pro
     margin-bottom: 2rem;
     transition: color 0.3s;
   }
-
   .btn-volver:hover {
     color: #0f172a;
   }
-
-  /* El Grid de 2 columnas */
   .producto-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* Mitad y mitad */
+    grid-template-columns: 1fr 1fr;
     gap: 50px;
     align-items: start;
   }
 
-  /* ====================
-     LADO IZQUIERDO
-     ==================== */
+  /* Galería e Imágenes */
+  .producto-galeria {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
   .producto-imagen {
     background: white;
     border-radius: 20px;
@@ -129,50 +268,73 @@ const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${pro
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
   }
-
   .producto-imagen img {
     width: 100%;
     height: auto;
-    max-height: 600px;
+    max-height: 500px;
     object-fit: contain;
     border-radius: 12px;
+    transition: opacity 0.2s ease-in-out;
   }
 
-  /* ====================
-     LADO DERECHO
-     ==================== */
+  /* Miniaturas */
+  .miniaturas-contenedor {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .miniatura {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    border: 2px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .miniatura img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .miniatura:hover {
+    transform: translateY(-3px);
+    border-color: #cbd5e1;
+  }
+  .miniatura.active {
+    border-color: #2563eb;
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.15);
+  }
+
+  /* Bloque de Información */
   .producto-info {
     display: flex;
     flex-direction: column;
   }
-
   .categoria {
-    color: #8b5e3c; /* Color de tu diseño */
+    color: #8b5e3c;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
     font-size: 0.9rem;
     margin-bottom: 10px;
   }
-
-  /* Nombre en negrito y grande */
   .nombre {
     font-size: 2.8rem;
     font-weight: 900;
-    color: #0f172a; /* Negro intenso */
+    color: #0f172a;
     line-height: 1.2;
     margin: 0 0 15px 0;
   }
-
-  /* Precio */
   .precio {
     font-size: 2.2rem;
     font-weight: 800;
-    color: #2563eb; /* Azul o tu color primario */
+    color: #2563eb;
     margin: 0 0 30px 0;
   }
-
-  /* Descripción */
   .bloque-descripcion {
     background: #f8fafc;
     padding: 25px;
@@ -180,29 +342,24 @@ const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${pro
     margin-bottom: 35px;
     border: 1px solid #e2e8f0;
   }
-
   .bloque-descripcion h3 {
     margin: 0 0 10px 0;
     font-size: 1.1rem;
     color: #0f172a;
   }
-
   .bloque-descripcion p {
     color: #475569;
     line-height: 1.7;
     margin: 0;
     font-size: 1.05rem;
   }
-
-  /* Botón WhatsApp */
   .accion-comprar {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
-
   .btn-whatsapp {
-    background: #25d366; /* Verde oficial de WhatsApp */
+    background: #25d366;
     color: white;
     text-decoration: none;
     font-size: 1.2rem;
@@ -216,17 +373,14 @@ const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${pro
     transition: all 0.3s ease;
     box-shadow: 0 10px 20px rgba(37, 211, 102, 0.2);
   }
-
   .btn-whatsapp i {
     font-size: 1.4rem;
   }
-
   .btn-whatsapp:hover {
     background: #1ebc59;
     transform: translateY(-3px);
     box-shadow: 0 15px 25px rgba(37, 211, 102, 0.3);
   }
-
   .atencion-rapida {
     color: #64748b;
     font-size: 0.95rem;
@@ -234,17 +388,17 @@ const mensajeWa = `Hola, vengo de la tienda web y me interesa el producto: ${pro
     margin: 0;
   }
 
-  /* ====================
-     RESPONSIVE (MÓVILES)
-     ==================== */
   @media (max-width: 900px) {
     .producto-grid {
-      grid-template-columns: 1fr; /* Se pone a una sola columna */
+      grid-template-columns: 1fr;
       gap: 30px;
     }
-
     .nombre {
       font-size: 2.2rem;
+    }
+    .miniatura {
+      width: 70px;
+      height: 70px;
     }
   }
 </style>
