@@ -22,6 +22,7 @@ const { data: categories } = await supabase
   .eq("store_id", STORE_ID);
 ---
 
+<!-- Prueba -->
 <MainLayout store={store} contacts={contacts}>
   <Navbar store={store} categories={categories || []} />
 </MainLayout>
